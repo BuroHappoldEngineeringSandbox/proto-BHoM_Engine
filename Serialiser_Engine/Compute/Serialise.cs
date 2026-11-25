@@ -1,0 +1,154 @@
+/*
+ * This file is part of the Buildings and Habitats object Model (BHoM)
+ * Copyright (c) 2015 - 2026, the respective contributors. All rights reserved.
+ *
+ * Each contributor holds copyright over their respective contributions.
+ * The project versioning (Git) records all such contribution source information.
+ *                                           
+ *                                                                              
+ * The BHoM is free software: you can redistribute it and/or modify         
+ * it under the terms of the GNU Lesser General Public License as published by  
+ * the Free Software Foundation, either version 3.0 of the License, or          
+ * (at your option) any later version.                                          
+ *                                                                              
+ * The BHoM is distributed in the hope that it will be useful,              
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of               
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the                 
+ * GNU Lesser General Public License for more details.                          
+ *                                                                            
+ * You should have received a copy of the GNU Lesser General Public License     
+ * along with this code. If not, see <https://www.gnu.org/licenses/lgpl-3.0.html>.      
+ */
+
+using BH.oM.Base;
+using BH.oM.Base.Attributes;
+using MongoDB.Bson;
+using MongoDB.Bson.IO;
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Linq;
+
+namespace BH.Engine.Serialiser
+{
+    public static partial class Compute
+    {
+        /*******************************************/
+        /**** Public Methods                    ****/
+        /*******************************************/
+
+        [Description("Used to support ToJson, not recommended to be used in isolation.")]
+        [Input("value", "The object to serialise. A null value is written as a BSON null.")]
+        [Input("writer", "The BSON document writer the serialised object is written to.")]
+        public static void ISerialise(this object value, BsonDocumentWriter writer)
+        {
+            if (value == null)
+                writer.WriteNull();
+            else
+                Serialise(value as dynamic, writer, typeof(object));
+        }
+
+        /*******************************************/
+        /**** Private Methods                   ****/
+        /*******************************************/
+
+        private static void ISerialise(this object value, BsonDocumentWriter writer, Type targetType)
+        {
+            if (value == null)
+                writer.WriteNull();
+            else
+                Serialise(value as dynamic, writer, targetType);
+        }
+
+
+        /*******************************************/
+        /**** Fallback Methods                  ****/
+        /*******************************************/
+
+        private static void Serialise(this object value, BsonDocumentWriter writer, Type targetType)
+        {
+            if (value == null || value.GetType() == typeof(System.DBNull))
+                writer.WriteNull();
+            else if (value.GetType() == typeof(object))
+            {
+                writer.WriteStartDocument();
+                writer.WriteEndDocument();
+            }
+            else
+            {
+                BH.Engine.Base.Compute.RecordError("Object of type " + value.GetType().ToString() + " cannot be serialised.");
+                writer.WriteNull();
+            } 
+        }
+
+        /*******************************************/
+        /**** Private Methods - Support         ****/
+        /*******************************************/
+
+        private static void WriteAsDocumentIfUnmatchingType(object value, BsonDocumentWriter writer, Type targetType, Action action)
+        {
+            bool asDocument = value.GetType() != targetType;
+
+            if (asDocument)
+            {
+                writer.WriteStartDocument();
+                writer.WriteName("_t");
+                writer.WriteString(value.GetType().CleanFullName());
+                writer.WriteName("_v");
+            }
+
+            action.Invoke();
+
+            if (asDocument)
+                writer.WriteEndDocument();
+
+        }
+
+        /*******************************************/
+
+        // Type.FullName embeds the AssemblyQualifiedName of every generic argument, recursively, for any
+        // closed generic type - a CLR quirk, not a BHoM choice. This mirrors FullName's own "Name`arity[[arg],[arg]]"
+        // format (kept for compatibility with the existing square-bracket generic type parser) but replaces each
+        // argument with its own clean name instead of its assembly-qualified name.
+        private static string CleanFullName(this Type type)
+        {
+            if (type == null)
+                return null;
+
+            // ---- TODO-NewSerialisation: START legacy code - delete down to the END marker when the toggle is removed ----
+            // Legacy format: return the raw Type.FullName, AQN of generic arguments included.
+            if (m_UseLegacySerialisation)
+                return type.FullName;
+            // ---- TODO-NewSerialisation: END legacy code ----
+
+            if (!type.IsGenericType)
+                return type.FullName;
+
+            return type.GetGenericTypeDefinition().FullName + "[["
+                + string.Join("],[", type.GetGenericArguments().Select(x => x.CleanFullName())) + "]]";
+        }
+
+
+        /*******************************************/
+        /**** Private Fields                    ****/
+        /*******************************************/
+
+        // ---- TODO-NewSerialisation: START legacy code - delete down to the END marker when the toggle is removed ----
+        // Temporary switch, see BHoM_Engine #3618.
+        // When true, the serialiser keeps writing the pre-10.0 json format:
+        //   - "_t" discriminators use Type.FullName, with AQN embedded for generic arguments (CleanFullName),
+        //   - non-oM types are written with their AssemblyQualifiedName (Serialise/Type.cs),
+        //   - method parameters are written as json type documents rather than plain text (Serialise/MethodBase.cs).
+        // Deserialisation supports both formats regardless of this value.
+        // Set to false to write the new, AQN-free format.
+        // To remove the switch, delete every block delimited by TODO-NewSerialisation markers, including this one.
+        private static readonly bool m_UseLegacySerialisation = true;
+        // ---- TODO-NewSerialisation: END legacy code ----
+
+        /*******************************************/
+    }
+}
+
+
+
+

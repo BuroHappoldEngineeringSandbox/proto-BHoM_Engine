@@ -1,0 +1,104 @@
+/*
+ * This file is part of the Buildings and Habitats object Model (BHoM)
+ * Copyright (c) 2015 - 2026, the respective contributors. All rights reserved.
+ *
+ * Each contributor holds copyright over their respective contributions.
+ * The project versioning (Git) records all such contribution source information.
+ *                                           
+ *                                                                              
+ * The BHoM is free software: you can redistribute it and/or modify         
+ * it under the terms of the GNU Lesser General Public License as published by  
+ * the Free Software Foundation, either version 3.0 of the License, or          
+ * (at your option) any later version.                                          
+ *                                                                              
+ * The BHoM is distributed in the hope that it will be useful,              
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of               
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the                 
+ * GNU Lesser General Public License for more details.                          
+ *                                                                            
+ * You should have received a copy of the GNU Lesser General Public License     
+ * along with this code. If not, see <https://www.gnu.org/licenses/lgpl-3.0.html>.      
+ */
+
+using BH.oM.Geometry;
+using BH.oM.Base.Attributes;
+using BH.oM.Quantities.Attributes;
+using System.ComponentModel;
+
+namespace BH.Engine.Geometry
+{
+    public static partial class Query
+    {
+        /***************************************************/
+        /**** Public Methods                            ****/
+        /***************************************************/
+
+        [Description("Calculates the dot product (scalar product) of two Vectors.")]
+        [Input("a", "The first Vector.")]
+        [Input("b", "The second Vector.")]
+        [Output("product", "The dot product of the two Vectors.")]
+        public static double DotProduct(this Vector a, Vector b)
+        {
+            if (a == null || b == null)
+            {
+                BH.Engine.Base.Compute.RecordError("Could not compute Dot Product because one or both Vectors are null.");
+                return double.NaN;
+            }
+            
+            return (a.X * b.X + a.Y * b.Y + a.Z * b.Z);
+        }
+
+        /***************************************************/
+
+        [Description("Calculates the cross product (vector product) of two Vectors.")]
+        [Input("a", "The first Vector.")]
+        [Input("b", "The second Vector.")]
+        [Output("product", "The cross product Vector perpendicular to both input Vectors.")]
+        public static Vector CrossProduct(this Vector a, Vector b)
+        {
+            if (a == null || b == null)
+            {
+                BH.Engine.Base.Compute.RecordError("Could not compute Cross Product because one or both Vectors are null.");
+                return null;
+            }
+            
+            return new Vector { X = a.Y * b.Z - a.Z * b.Y, Y = a.Z * b.X - a.X * b.Z, Z = a.X * b.Y - a.Y * b.X };
+        }
+
+        /***************************************************/
+
+        [Description("Calculates the cross product of two Points treated as position vectors.")]
+        [Input("a", "The first Point.")]
+        [Input("b", "The second Point.")]
+        [Output("product", "The cross product Vector perpendicular to both position vectors.")]
+        public static Vector CrossProduct(this Point a, Point b)
+        {
+            if (a == null || b == null)
+            {
+                BH.Engine.Base.Compute.RecordError("Could not compute Cross Product because one or both Points are null.");
+                return null;
+            }
+            
+            return new Vector { X = a.Y * b.Z - a.Z * b.Y, Y = a.Z * b.X - a.X * b.Z, Z = a.X * b.Y - a.Y * b.X };
+        }
+
+        /***************************************************/
+
+        [Description("Calculates the product (multiplication) of two Quaternions.")]
+        [Input("q1", "The first Quaternion.")]
+        [Input("q2", "The second Quaternion.")]
+        [Output("product", "The product of the two Quaternions.")]
+        public static Quaternion Product(this Quaternion q1, Quaternion q2)
+        {
+            if (q1 == null || q2 == null)
+            {
+                BH.Engine.Base.Compute.RecordError("Could not compute Product because one or both Quaternions are null.");
+                return null;
+            }
+            
+            return q1 * q2;
+        }
+
+        /***************************************************/
+    }
+}

@@ -1,0 +1,91 @@
+/*
+ * This file is part of the Buildings and Habitats object Model (BHoM)
+ * Copyright (c) 2015 - 2026, the respective contributors. All rights reserved.
+ *
+ * Each contributor holds copyright over their respective contributions.
+ * The project versioning (Git) records all such contribution source information.
+ *                                           
+ *                                                                              
+ * The BHoM is free software: you can redistribute it and/or modify         
+ * it under the terms of the GNU Lesser General Public License as published by  
+ * the Free Software Foundation, either version 3.0 of the License, or          
+ * (at your option) any later version.                                          
+ *                                                                              
+ * The BHoM is distributed in the hope that it will be useful,              
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of               
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the                 
+ * GNU Lesser General Public License for more details.                          
+ *                                                                            
+ * You should have received a copy of the GNU Lesser General Public License     
+ * along with this code. If not, see <https://www.gnu.org/licenses/lgpl-3.0.html>.      
+ */
+
+using BH.oM.Geometry;
+using BH.oM.Base.Attributes;
+using BH.oM.Quantities.Attributes;
+using System.Collections.Generic;
+using System.ComponentModel;
+
+namespace BH.Engine.Geometry
+{
+    public static partial class Query
+    {
+        /***************************************************/
+        /**** Curves                                    ****/
+        /***************************************************/
+
+        [Description("Gets the centre Point of an Arc.")]
+        [Input("arc", "The Arc to get the centre of.")]
+        [Input("tolerance", "The tolerance for the calculation.", typeof(Length))]
+        [Output("centre", "The centre Point of the Arc.")]
+        public static Point Centre(this Arc arc, double tolerance = Tolerance.Distance)
+        {
+            return arc.CoordinateSystem.Origin;
+        }
+
+        /***************************************************/
+        /**** Surfaces                                    ****/
+        /***************************************************/
+
+        [Description("Gets the centre Point of a BoundingBox.")]
+        [Input("box", "The BoundingBox to get the centre of.")]
+        [Output("centre", "The centre Point of the BoundingBox.")]
+        public static Point Centre(this BoundingBox box)
+        {
+            return new Point { X = (box.Max.X + box.Min.X) / 2, Y = (box.Max.Y + box.Min.Y) / 2, Z = (box.Max.Z + box.Min.Z) / 2 };
+        }
+
+        /***************************************************/
+        /**** Mesh                                      ****/
+        /***************************************************/
+
+        [Description("Gets the centre Points of all faces in a Mesh.")]
+        [Input("mesh", "The Mesh to get the face centres from.")]
+        [Output("centres", "The centre Points of all faces in the Mesh.")]
+        public static List<Point> Centres(this Mesh mesh)
+        {
+            List<Face> faces = mesh.Faces;
+            List<Point> vertices = mesh.Vertices;
+            List<Point> centres = new List<Point>(faces.Count);
+
+            for (int i = 0; i < faces.Count; i++)
+            {
+                Point pA = vertices[(faces[i].A)];
+                Point pB = vertices[(faces[i].B)];
+                Point pC = vertices[(faces[i].C)];
+
+                if (!faces[i].IsQuad())
+                    centres.Add(new Point { X = (pA.X + pB.X + pC.X) / 3, Y = (pA.Y + pB.Y + pC.Y) / 3, Z = (pA.Z + pB.Z + pC.Z) / 3 });
+                else
+                {
+                    Point pD = vertices[(faces[i].D)];
+                    centres.Add(new Point { X = (pA.X + pB.X + pC.X + pD.X) / 4, Y = (pA.Y + pB.Y + pC.Y + pD.Y) / 4, Z = (pA.Z + pB.Z + pC.Z + pD.Z) / 4 });  // Assumption that if the face is quad, it is a flat quad.
+                }
+            }
+
+            return centres;
+        }
+
+        /***************************************************/
+    }
+}
